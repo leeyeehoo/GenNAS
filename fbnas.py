@@ -13,6 +13,7 @@ from pycls.models.anynet import AnyNet
 from pycls.models.nas.genotypes import GENOTYPES, Genotype
 import json
 import torch
+import os
 
 class ReturnFeatureLayer(torch.nn.Module):
     def __init__(self, mod):
@@ -35,9 +36,9 @@ def return_feature_layer(network, prefix=''):
              
 
 class NDS:
-    def __init__(self, searchspace):
+    def __init__(self, searchspace, path = './data/nds_data/'):
         self.searchspace = searchspace
-        data = json.load(open(f'./data/nds_data/{searchspace}.json', 'r'))
+        data = json.load(open(os.path.join(path,'%s.json'%searchspace), 'r'))
         try:
             data = data['top'] + data['mid']
         except Exception as e:
@@ -56,13 +57,13 @@ class NDS:
         config = netinfo['net']
         #print(config)
         if 'genotype' in config:
-            #print('geno')
+#             print('geno')
             gen = config['genotype']
             genotype = Genotype(normal=gen['normal'], normal_concat=gen['normal_concat'], reduce=gen['reduce'], reduce_concat=gen['reduce_concat'])
-#             if '_in' in self.searchspace:
-#                 network = NetworkImageNet(config['width'], 1, config['depth'], config['aux'],  genotype)
-#             else:
-            network = NetworkCIFAR(config['width'], 1, config['depth'], config['aux'],  genotype)
+            if '_in' in self.searchspace:
+                network = NetworkImageNet(config['width'], 1, config['depth'], config['aux'],  genotype)
+            else:
+                network = NetworkCIFAR(config['width'], 1, config['depth'], config['aux'],  genotype)
             network.drop_path_prob = 0.
             #print(config)
             #print('genotype')
