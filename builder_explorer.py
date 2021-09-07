@@ -1,13 +1,12 @@
 #support NB101, NB201, Simulated NDS ResN-series
-from pynbs.nasbench101 import nb101_generator,model_spec
-from pynbs.nasbenchnlp.nas_environment import Environment
+from pynbs import nb101_generator,model_spec
 import copy
 import random
 import numpy as np
+from pynbs.nas_environment import Environment
 from scipy.spatial import distance
 import pandas as pd
-import os
-# some functions
+
 def mutate_embedded(e, std=1, axes_bounds=None):
     e_new = e + np.random.randn(len(e)) * std
     if axes_bounds is not None:
@@ -30,21 +29,19 @@ def get_diff(conf_A,conf_B):
     return count
 
 class Explorer():
-    def __init__(self, model_builder, args):
-        self.mutate_ratio = args.mutate_ratio
-        self.neighbor = args.neighbor
+    def __init__(self, model_builder, mutate_ratio = 1., neighbor = 200):
+        self.mutate_ratio = mutate_ratio
+        self.neighbor = neighbor
         self.NDS = model_builder.NDS
         self.search_space = model_builder.search_space
         self.env = None
-        self.nlp_path = args.nlp_path #default data/nasbenchnlp
-        
-        if self.search_space == 'nasbenchnlp':
-            df_recepie_vectors_lowdim = pd.read_csv(os.path.join(self.nlp_path,'doc2vec_features_lowdim.csv')).set_index('recepie_id')
-            self.env = Environment(os.path.join(self.nlp_path,'train_logs_single_run/'))
+        if self.search_space == 'nlp':
+            df_recepie_vectors_lowdim = pd.read_csv('data/doc2vec_features_lowdim.csv').set_index('recepie_id')
+            self.env = Environment('data/train_logs_single_run/')
             self.search_set_recepie_ids = np.array(self.env.get_recepie_ids())
             self.X_lowdim = df_recepie_vectors_lowdim.loc[self.search_set_recepie_ids].values
             self.axes_bounds = (np.min(self.X_lowdim, axis=0), np.max(self.X_lowdim, axis=0))
-        assert self.search_space in ['nasbenchnlp','nasbench101','nasbench201','ResNeXt-A','ResNeXt-B','ResNet'], \
+        assert self.search_space in ['nlp','nasbench101','nasbench201','ResNeXt-A','ResNeXt-B','ResNet'], \
         "search space is not supported!"
     def random_spec(self):
         search_space = self.search_space
@@ -59,7 +56,7 @@ class Explorer():
                     node.append(random.choice([0,1,2,3,4]))
                 spec.append(node)
             return spec
-        elif search_space == "nasbenchnlp":
+        elif search_space == "nlp":
             arch_id = np.random.randint(len(self.search_set_recepie_ids))
             return arch_id,self.env._logs[arch_id]
         else:
@@ -68,7 +65,7 @@ class Explorer():
         search_space = self.search_space
         if search_space == "nasbench101":
             matrix,ops = spec
-            spec = model_spec.ModelSpec(matrix,ops)
+            spec = model_spec._ToModelSpec(matrix,ops)
             new_spec = nb101_generator.mutate_spec(spec,self.mutate_ratio)
             return [new_spec.original_matrix,new_spec.original_ops]
         elif search_space == "nasbench201":
@@ -82,16 +79,16 @@ class Explorer():
                     else:
                         continue
             return new_spec
-        elif search_space == "nasbenchnlp":
-            parent = spec[0]
+        elif search_space == "nlp":
+            parent = spec
             for std in [0.5, 1.0, 2.0, 4.0, 8.0]:
                 e_new = mutate_embedded(self.X_lowdim[parent], std, self.axes_bounds)
                 child = find_closest(self.X_lowdim, e_new)
                 if child != parent:
                     break
             new_arch = self.env._logs[child]
-            return [child,new_arch]
-        elif search_space in ['ResNet','ResNeXt-A','ResNeXt-B']:
+            return child,new_arch
+        else:
             query_list = random.sample(np.arange(len(self.NDS)).tolist(),self.neighbor)
             conf_A = self.NDS.get_network_config(spec)
             diffs = []
@@ -100,6 +97,5 @@ class Explorer():
                 diff = get_diff(conf_A,conf_B)
                 diffs.append(diff)
             return query_list[np.argmin(diffs)]
-        else:
-            raise NotImplementedError
+        
     
