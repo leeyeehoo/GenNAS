@@ -1,11 +1,13 @@
 #  Generic Neural Architecture Search via Regression
 
-This repository is the official implementation of Generic Neural Architecture Search via Regression. 
+This repository is the official implementation of Generic Neural Architecture Search via Regression ([NeurIPS'21 spotlight](https://papers.nips.cc/paper/2021/hash/aba53da2f6340a8b89dc96d09d0d0430-Abstract.html) | [Openreview](https://openreview.net/forum?id=mPTfR3Upe0o) | [Arxiv version](https://arxiv.org/abs/2108.01899)). 
 
 
 ## Requirements
 
-PyTorch >= 1.1.0 (We suggest to use version 1.5.0. It may work for version < 1.1.0 but we didn't test.)
+```
+pip install -r requirement.txt
+```
 
 ### Minimum required datasets:
 
@@ -59,3 +61,4 @@ python do_explore.py --search_space=nasbench201 --config=CONF_NB101 #NASBench-20
 python do_explore.py --search_space=nlp --config=CONF_NLP #NASBench-NLP
 python do_explore.py --search_space=DARTS --config=CONF_DARTS #NDS
 ```
+

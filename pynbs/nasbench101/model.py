@@ -1,9 +1,7 @@
 """Builds the Pytorch computational graph.
-
 Tensors flowing into a single vertex are added together for all vertices
 except the output, which is concatenated instead. Tensors flowing out of input
 are always added.
-
 If interior edge channels don't match, drop the extra channels (channels are
 guaranteed non-decreasing). Tensors flowing out of the input as always
 projected instead.
@@ -16,14 +14,14 @@ from __future__ import print_function
 import numpy as np
 import math
 
-from pynbs.base_ops import *
+from .base_ops import *
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class Network(nn.Module):
-    def __init__(self, spec, last_channels = [32,32,32],stem_out_channels = 128, num_stacks = 3, num_modules_per_stack = 3, num_labels = 10):
+    def __init__(self, spec, stem_out_channels, num_stacks, num_modules_per_stack, num_labels):
         super(Network, self).__init__()
 
         self.layers = nn.ModuleList([])
@@ -49,24 +47,16 @@ class Network(nn.Module):
                 in_channels = out_channels
 
         self.classifier = nn.Linear(out_channels, num_labels)
-        
-#         self._initialize_weights()
-        self.out0 = nn.Sequential(nn.BatchNorm2d(out_channels//4),nn.Conv2d(out_channels//4,last_channels[0],1))
-        self.out1 = nn.Sequential(nn.BatchNorm2d(out_channels//2),nn.Conv2d(out_channels//2,last_channels[1],1))
-        self.out2 = nn.Sequential(nn.BatchNorm2d(out_channels),nn.Conv2d(out_channels,last_channels[2],1))
+
+        self._initialize_weights()
+
     def forward(self, x):
-        count = 0
         for _, layer in enumerate(self.layers):
-            if isinstance(layer,nn.MaxPool2d) and count == 0:
-                x0 = self.out0(F.interpolate(x,(8,8)))
-                count += 1
-            elif isinstance(layer,nn.MaxPool2d) and count == 1:
-                x1 = self.out1(F.interpolate(x,(8,8)))
-                count += 1
             x = layer(x)
-        
-        x2 = self.out2(x)
-        return [x0,x1,x2]
+        out = torch.mean(x, (2, 3))
+        out = self.classifier(out)
+
+        return out
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -172,14 +162,12 @@ def Truncate(inputs, channels):
 
 def ComputeVertexChannels(in_channels, out_channels, matrix):
     """Computes the number of channels at every vertex.
-
     Given the input channels and output channels, this calculates the number of
     channels at each interior vertex. Interior vertices have the same number of
     channels as the max of the channels of the vertices it feeds into. The output
     channels are divided amongst the vertices that are directly connected to it.
     When the division is not even, some vertices may receive an extra channel to
     compensate.
-
     Returns:
         list of channel counts, in order of the vertices.
     """

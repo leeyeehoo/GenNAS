@@ -5,36 +5,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class CVTask():
-    def __init__(self, dataset,config, device = 'cpu',batch_size = None,last_channels = 64, workers = 2, pad=False, input_size = 32, output_size = 8):#currently we support C10/C100/IN16
-        self.dataset = dataset
-        self.config = config
-        self.workers = workers
-        self.pad = pad
-        self.input_size = input_size
-        self.output_size = output_size
-        self.device = device
-        self.last_channels = last_channels
-        if batch_size is not None:
-            config['batchsize'] = batch_size
+    def __init__(self, args):#currently we support C10/C100/IN16
+        self.dataset = args.dataset
+        self.config = args.config
+        self.workers = args.workers
+        self.pad = args.pad
+        self.input_size = args.input_size
+        self.output_size = args.output_size
+        self.device = args.device
+        self.last_channels = args.last_channels
+        if args.batch_size is not None:
+            self.config['batchsize'] = args.batch_size #batch_size can be overrided
             
-        if dataset == 'cifar10':
+        if self.dataset == 'cifar10':
             self.if_split = True
         else:
             self.if_split = False
-        if 'cifar' in dataset:
+        if 'cifar' in self.dataset:
             self.meanstd = [[x / 255.0 for x in [125.3, 123.0, 113.9]],[x / 255.0 for x in [63.0, 62.1, 66.7]]]
         else:
             self.meanstd = None
             
-        train_loader, val_loader = get_cifar_dataloaders(int(config['batchsize']), int(config['batchsize']), self.dataset, self.workers,if_split = self.if_split, pad=False, meanstd = self.meanstd)
+        train_loader, val_loader = get_cifar_dataloaders(int(self.config['batchsize']), int(self.config['batchsize']), self.dataset, self.workers,if_split = self.if_split, pad=False, meanstd = self.meanstd)
         
         train_dataprovider = DataIterator(train_loader)
         data, _ = train_dataprovider.next()
         if self.dataset == 'ImageNet16-120':
-            data = F.interpolate(data,(input_size,input_size))
+            data = F.interpolate(data,(self.input_size,self.input_size))
         self.data = data
         self.targets = self._build_target()
-        self.data = data.to(device)
+        self.data = self.data.to(self.device)
         
         ###############################build target####################################
     def get_data(self):
@@ -78,13 +78,13 @@ class CVTask():
         return targets
         
 class NLPTask():
-    def __init__(self,config, device = 'cpu',length = 8, batch_size = None):#currently we support NASBENCH-NLP
-        self.config = config
-        self.length = length
-        self.device = device
+    def __init__(self,args):#currently we support NASBENCH-NLP
+        self.config = args.config
+        self.length = args.length
+        self.device = args.device
         
-        if batch_size is not None:
-            config['batchsize'] = batch_size
+        if args.batch_size is not None:
+            self.config['batchsize'] = args.batch_size #batch_size can be overrided
 
         self.data, self.targets = self._build_target()
         self.data = self.data.squeeze(1).permute(1,0,2)

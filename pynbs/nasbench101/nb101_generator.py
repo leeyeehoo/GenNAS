@@ -1,5 +1,5 @@
 import numpy as np
-from pynbs.model_spec import ModelSpec
+from .model_spec import ModelSpec
 import torch
 import random
 import copy

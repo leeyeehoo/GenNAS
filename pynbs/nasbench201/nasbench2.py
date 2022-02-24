@@ -18,7 +18,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pynbs.nasbench2_ops import *
+from .nasbench2_ops import *
 
 
 def gen_searchcell_mask_from_arch_str(arch_str):

@@ -1,5 +1,4 @@
 """Model specification for module connectivity individuals.
-
 This module handles pruning the unused parts of the computation graph but should
 avoid creating any TensorFlow models (this is done inside model_builder.py).
 """
@@ -11,7 +10,7 @@ from __future__ import print_function
 import copy
 import numpy as np
 
-import pynbs.graph_util as graph_util
+import pynbs.nasbench101.graph_util
 
 # Graphviz is optional and only required for visualization.
 try:
@@ -19,15 +18,12 @@ try:
 except ImportError:
   pass
 
-def _ToModelSpec(mat, ops):
-    return ModelSpec(mat, ops)
 
 class ModelSpec(object):
   """Model specification given adjacency matrix and labeling."""
 
   def __init__(self, matrix, ops, data_format='channels_last'):
     """Initialize the module spec.
-
     Args:
       matrix: ndarray or nested list with shape [V, V] for the adjacency matrix.
       ops: V-length list of labels for the base ops used. The first and last
@@ -35,7 +31,6 @@ class ModelSpec(object):
         which have no operations. The elements are retained to keep consistent
         indexing.
       data_format: channels_last or channels_first.
-
     Raises:
       ValueError: invalid matrix or ops
     """
@@ -64,12 +59,10 @@ class ModelSpec(object):
 
   def _prune(self):
     """Prune the extraneous parts of the graph.
-
     General procedure:
       1) Remove parts of graph not connected to input.
       2) Remove parts of graph not connected to output.
       3) Reorder the vertices so that they are consecutive after steps 1 and 2.
-
     These 3 steps can be combined by deleting the rows and columns of the
     vertices that are not reachable from both the input and output (in reverse).
     """
@@ -115,11 +108,9 @@ class ModelSpec(object):
 
   def hash_spec(self, canonical_ops):
     """Computes the isomorphism-invariant graph hash of this spec.
-
     Args:
       canonical_ops: list of operations in the canonical ordering which they
         were assigned (i.e. the order provided in the config['available_ops']).
-
     Returns:
       MD5 hash of this spec which can be used to query the dataset.
     """
